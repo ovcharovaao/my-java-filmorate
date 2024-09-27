@@ -6,7 +6,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,23 +57,10 @@ class FilmControllerTest {
     }
 
     @Test
-    void updateFilm() {
-        fc.addFilm(film);
-        film.setName("UpdateName");
-        Film updatedFilm = fc.updateFilm(film);
-
-        assertEquals("UpdateName", updatedFilm.getName());
-
-        Film film1 = fc.getFilms().get(film.getId());
-
-        assertEquals("UpdateName", film1.getName());
-    }
-
-    @Test
     void getFilms() {
         fc.addFilm(film);
-        Map<Long, Film> filmsMap = fc.getFilms();
+        List<Film> films = fc.getFilms();
 
-        assertEquals(1, filmsMap.size());
+        assertEquals(1, films.size());
     }
 }

@@ -6,7 +6,9 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -16,44 +18,44 @@ public class FilmController {
     private final Map<Long, Film> films = new HashMap<>();
 
     @GetMapping
-    public Map<Long, Film> getFilms() {
-        return films;
+    public List<Film> getFilms() {
+        return new ArrayList<>(films.values());
     }
 
     @PostMapping
-    public void addFilm(@RequestBody Film film) {
-        try {
-            film.setId(getNextIdForFilm());
-            filmValidator(film);
-            films.put(film.getId(), film);
-            log.info("Добавлен фильм {}", film);
-        } catch (ValidationException e) {
-            log.error("Ошибка валидации при добавлении фильма: {}", e.getMessage());
-            throw e;
+    public Film addFilm(@RequestBody Film film) {
+        if (film == null) {
+            log.error("Запрос на добавление фильма пустой");
+            throw new ValidationException("Запрос на добавление фильма не может быть пустым");
         }
+        filmValidator(film);
+        film.setId(getNextIdForFilm());
+        films.put(film.getId(), film);
+        log.info("Добавлен фильм {}", film);
+        return film;
     }
 
     @PutMapping
     public Film updateFilm(@RequestBody Film updatedFilm) {
-        try {
-            filmValidator(updatedFilm);
-            if (!films.containsKey(updatedFilm.getId())) {
-                log.warn("Фильм с id {} не найден, добавление нового фильма", updatedFilm.getId());
-                updatedFilm.setId(getNextIdForFilm());
-                films.put(updatedFilm.getId(), updatedFilm);
-                log.info("Добавлен новый фильм {}", updatedFilm);
-            } else {
-                films.put(updatedFilm.getId(), updatedFilm);
-                log.info("Обновлен фильм с id {}: {}", updatedFilm.getId(), updatedFilm);
-            }
-            return updatedFilm;
-        } catch (ValidationException e) {
-            log.error("Ошибка валидации при обновлении фильма: {}", e.getMessage());
-            throw e;
+        if (updatedFilm == null) {
+            log.error("Запрос на обновление фильма пустой");
+            throw new ValidationException("Запрос на обновление фильма не может быть пустым");
         }
+
+        filmValidator(updatedFilm);
+
+        if (!films.containsKey(updatedFilm.getId())) {
+            log.warn("Фильм с id {} не найден", updatedFilm.getId());
+            throw new ValidationException("Фильм не найден");
+        }
+
+        films.put(updatedFilm.getId(), updatedFilm);
+        log.info("Обновлен фильм с id {}: {}", updatedFilm.getId(), updatedFilm);
+
+        return updatedFilm;
     }
 
-    private void filmValidator(@RequestBody Film film) {
+    private void filmValidator(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
             log.error("Имя фильма пустое");
             throw new ValidationException("Название фильма не может быть пустым");

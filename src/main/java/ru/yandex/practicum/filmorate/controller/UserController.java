@@ -6,7 +6,9 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -16,47 +18,46 @@ public class UserController {
     private final Map<Long, User> users = new HashMap<>();
 
     @GetMapping
-    public Map<Long, User> getUsers() {
-        return users;
+    public List<User> getUsers() {
+        return new ArrayList<>(users.values());
     }
 
     @PostMapping
-    public void addUser(@RequestBody User user) {
-        try {
-            user.setId(getNextIdForUser());
-            userValidator(user);
-            users.put(user.getId(), user);
-            log.info("Добавлен пользователь {}", user);
-        } catch (ValidationException e) {
-            log.error("Ошибка валидации при добавлении пользователя: {}", e.getMessage());
-            throw e;
+    public User addUser(@RequestBody User user) {
+        if (user == null) {
+            log.error("Запрос на добавление пользователя пустой");
+            throw new ValidationException("Запрос на добавление пользователя не может быть пустым");
         }
+        userValidator(user);
+        user.setId(getNextIdForUser());
+        users.put(user.getId(), user);
+        log.info("Добавлен пользователь {}", user);
+        return user;
     }
 
     @PutMapping
     public User updateUser(@RequestBody User updatedUser) {
-        try {
-            if (!users.containsKey(updatedUser.getId())) {
-                log.warn("Пользователь с id {} не найден, добавление нового пользователя", updatedUser.getId());
-                updatedUser.setId(getNextIdForUser());
-                userValidator(updatedUser);
-                users.put(updatedUser.getId(), updatedUser);
-                log.info("Добавлен новый пользователь {}", updatedUser);
-            } else {
-                users.put(updatedUser.getId(), updatedUser);
-                log.info("Обновлен пользователь с id {}: {}", updatedUser.getId(), updatedUser);
-            }
-
-            return updatedUser;
-        } catch (ValidationException e) {
-            log.error("Ошибка валидации при обновлении пользователя: {}", e.getMessage());
-            throw e;
+        if (updatedUser == null) {
+            log.error("Запрос на обновление пользователя пустой");
+            throw new ValidationException("Запрос на обновление пользователя не может быть пустым");
         }
+
+        userValidator(updatedUser);
+
+        if (!users.containsKey(updatedUser.getId())) {
+            log.warn("Пользователь с id {} не найден", updatedUser.getId());
+            throw new ValidationException("Пользователь не найден");
+        }
+
+        users.put(updatedUser.getId(), updatedUser);
+        log.info("Обновлен пользователь с id {}: {}", updatedUser.getId(), updatedUser);
+
+        return updatedUser;
     }
 
-    private void userValidator(@RequestBody User user) {
+    private void userValidator(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            log.error("Электронная почта или не модержит символ @");
+            log.error("Электронная почта пустая или не содержит символ @");
             throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @");
         }
         if (user.getLogin().contains(" ") || user.getLogin().isBlank()) {

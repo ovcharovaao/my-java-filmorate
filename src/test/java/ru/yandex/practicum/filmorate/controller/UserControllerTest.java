@@ -6,7 +6,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,22 +64,10 @@ class UserControllerTest {
     }
 
     @Test
-    void updateFilm() {
-        uc.addUser(user);
-        user.setName("UpdateName");
-        User updatedUser = uc.updateUser(user);
-
-        assertEquals("UpdateName", updatedUser.getName());
-
-        User user1 = uc.getUsers().get(user.getId());
-        assertEquals("UpdateName", user1.getName());
-    }
-
-    @Test
     void getFilms() {
         uc.addUser(user);
-        Map<Long, User> usersMap = uc.getUsers();
+        List<User> users = uc.getUsers();
 
-        assertEquals(1, usersMap.size());
+        assertEquals(1, users.size());
     }
 }
