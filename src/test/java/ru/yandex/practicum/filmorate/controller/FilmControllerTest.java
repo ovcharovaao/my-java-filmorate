@@ -1,21 +1,32 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
 class FilmControllerTest {
-    private final Film film = new Film();
     FilmController fc = new FilmController();
 
+    @Autowired
+    Validator validator;
+
+    Film film;
+
     @BeforeEach
-    void setFilm() {
+    void setUp() {
+        film = new Film();
         film.setName("Film");
         film.setDescription("Description");
         film.setReleaseDate(LocalDate.of(2004, 1, 1));
@@ -23,24 +34,25 @@ class FilmControllerTest {
     }
 
     @Test
+    @DisplayName("Создание фильма без названия")
     void addFilmWithEmptyName() {
         film.setName(null);
-
-        assertThrows(ValidationException.class, () -> fc.addFilm(film));
-        assertTrue(fc.getFilms().isEmpty());
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertEquals(1, violations.size());
+        assertEquals("Название фильма не может быть пустым", violations.iterator().next().getMessage());
     }
 
     @Test
+    @DisplayName("Создание фильма с превышающим допустимую длину описанием")
     void addFilmWithIncorrectDescription() {
-        film.setDescription("A very very long description, a very looooooooooooooooooooooooooong description of " +
-                "a very interesting and loooooooooooooooooooooooooooooong movie, this description has more than " +
-                "200 characters for this test");
-
-        assertThrows(ValidationException.class, () -> fc.addFilm(film));
-        assertTrue(fc.getFilms().isEmpty());
+        film.setDescription("a".repeat(201));
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertEquals(1, violations.size());
+        assertEquals("Длина описания должна составлять от 1 до 200 символов", violations.iterator().next().getMessage());
     }
 
     @Test
+    @DisplayName("Создание фильма с датой релиза ранее 28.12.1895")
     void addFilmWithIncorrectReleaseDate() {
         film.setReleaseDate(LocalDate.of(1895, 12, 27));
 
@@ -49,18 +61,18 @@ class FilmControllerTest {
     }
 
     @Test
+    @DisplayName("Создание фильма с отрицательной продолжительностью")
     void addFilmWithIncorrectDuration() {
         film.setDuration(-1);
-
-        assertThrows(ValidationException.class, () -> fc.addFilm(film));
-        assertTrue(fc.getFilms().isEmpty());
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertEquals(1, violations.size());
+        assertEquals("Продолжительность фильма должна быть положительным числом", violations.iterator().next().getMessage());
     }
 
     @Test
-    void getFilms() {
-        fc.addFilm(film);
-        List<Film> films = fc.getFilms();
-
-        assertEquals(1, films.size());
+    @DisplayName("Создание фильма с правильными данными")
+    void addFilmWithCorrectData() {
+        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        assertTrue(violations.isEmpty());
     }
 }
