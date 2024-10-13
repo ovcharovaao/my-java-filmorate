@@ -7,22 +7,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class FilmControllerTest {
-    FilmController fc = new FilmController();
+    @Autowired
+    private FilmController filmController;
 
     @Autowired
-    Validator validator;
+    private Validator validator;
 
-    Film film;
+    private Film film;
 
     @BeforeEach
     void setUp() {
@@ -55,9 +58,7 @@ class FilmControllerTest {
     @DisplayName("Создание фильма с датой релиза ранее 28.12.1895")
     void addFilmWithIncorrectReleaseDate() {
         film.setReleaseDate(LocalDate.of(1895, 12, 27));
-
-        assertThrows(ValidationException.class, () -> fc.addFilm(film));
-        assertTrue(fc.getFilms().isEmpty());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
@@ -74,5 +75,25 @@ class FilmControllerTest {
     void addFilmWithCorrectData() {
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
         assertTrue(violations.isEmpty());
+        Film createdFilm = filmController.addFilm(film);
+        assertNotNull(createdFilm.getId());
+        assertEquals(film.getName(), createdFilm.getName());
+    }
+
+    @Test
+    @DisplayName("Удаление фильма")
+    void deleteFilm() {
+        Film createdFilm = filmController.addFilm(film);
+        filmController.deleteFilm(createdFilm.getId());
+        assertThrows(NotFoundException.class, () -> filmController.getFilm(createdFilm.getId()));
+    }
+
+    @Test
+    @DisplayName("Получение популярных фильмов")
+    void getPopularFilms() {
+        filmController.addFilm(film);
+        List<Film> popularFilms = filmController.getPopularFilms(5);
+        assertEquals(1, popularFilms.size());
+        assertEquals(film.getName(), popularFilms.get(0).getName());
     }
 }

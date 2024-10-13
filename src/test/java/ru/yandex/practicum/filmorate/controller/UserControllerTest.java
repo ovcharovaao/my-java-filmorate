@@ -13,17 +13,17 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class UserControllerTest {
-    UserController uc = new UserController();
+    @Autowired
+    private UserController userController;
 
     @Autowired
-    Validator validator;
+    private Validator validator;
 
-    User user;
+    private User user;
 
     @BeforeEach
     void setUp() {
@@ -63,7 +63,7 @@ class UserControllerTest {
     @DisplayName("Создание пользователя с пустым именем")
     void addUserWithEmptyName() {
         user.setName("");
-        uc.addUser(user);
+        userController.addUser(user);
 
         assertEquals(user.getName(), user.getLogin(),
                 "Вместо имени пользователя должен быть использован логин");
@@ -79,11 +79,83 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("Получение списка пользователей")
-    void getFilms() {
-        uc.addUser(user);
-        List<User> users = uc.getUsers();
+    @DisplayName("Добавление друга")
+    void addFriend() {
+        User friend = new User();
+        friend.setEmail("friend@email.com");
+        friend.setLogin("FriendLogin");
+        friend.setName("Friend");
+        friend.setBirthday(LocalDate.of(2000, 1, 1));
 
-        assertEquals(1, users.size());
+        User createdUser = userController.addUser(user);
+        User createdFriend = userController.addUser(friend);
+
+        userController.addFriend(createdUser.getId(), createdFriend.getId());
+
+        List<User> friends = userController.getFriends(createdUser.getId());
+        assertTrue(friends.contains(createdFriend), "Друг не был добавлен");
+    }
+
+    @Test
+    @DisplayName("Удаление друга")
+    void removeFriend() {
+        User friend = new User();
+        friend.setEmail("friend@email.com");
+        friend.setLogin("FriendLogin");
+        friend.setName("Friend");
+        friend.setBirthday(LocalDate.of(2000, 1, 1));
+
+        User createdUser = userController.addUser(user);
+        User createdFriend = userController.addUser(friend);
+
+        userController.addFriend(createdUser.getId(), createdFriend.getId());
+        userController.deleteFriend(createdUser.getId(), createdFriend.getId());
+
+        List<User> friends = userController.getFriends(createdUser.getId());
+        assertFalse(friends.contains(createdFriend), "Друг не был удален");
+    }
+
+    @Test
+    @DisplayName("Получение списка друзей")
+    void getFriends() {
+        User friend1 = new User();
+        friend1.setEmail("friend1@email.com");
+        friend1.setLogin("FriendLogin1");
+        friend1.setName("Friend1");
+        friend1.setBirthday(LocalDate.of(2000, 1, 1));
+
+        User createdUser = userController.addUser(user);
+        User createdFriend1 = userController.addUser(friend1);
+        userController.addFriend(createdUser.getId(), createdFriend1.getId());
+
+        List<User> friends = userController.getFriends(createdUser.getId());
+        assertEquals(1, friends.size(), "Список друзей должен содержать 1 пользователя");
+    }
+
+    @Test
+    @DisplayName("Получение общих друзей")
+    void getCommonFriends() {
+        User user1 = userController.addUser(user);
+
+        User user2 = new User();
+        user2.setEmail("user2@email.com");
+        user2.setLogin("User2Login");
+        user2.setName("User2");
+        user2.setBirthday(LocalDate.of(2000, 1, 1));
+        User createdUser2 = userController.addUser(user2);
+
+        User friend = new User();
+        friend.setEmail("friend@email.com");
+        friend.setLogin("FriendLogin");
+        friend.setName("Friend");
+        friend.setBirthday(LocalDate.of(2000, 1, 1));
+        User createdFriend = userController.addUser(friend);
+
+        userController.addFriend(user1.getId(), createdFriend.getId());
+        userController.addFriend(createdUser2.getId(), createdFriend.getId());
+
+        List<User> commonFriends = userController.getCommonFriends(user1.getId(), createdUser2.getId());
+        assertEquals(1, commonFriends.size(), "Должен быть 1 общий друг");
+        assertTrue(commonFriends.contains(createdFriend), "Общий друг не найден");
     }
 }
