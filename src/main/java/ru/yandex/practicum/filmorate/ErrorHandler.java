@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.yandex.practicum.filmorate.exception.FriendNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
@@ -27,11 +28,18 @@ public class ErrorHandler {
         return new ErrorResponse("Не найдено", e.getMessage());
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleGeneralException(Exception e) {
         log.error("Внутренняя ошибка сервера: {}", e.getMessage(), e);
         return new ErrorResponse("Внутренняя ошибка сервера", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.OK)
+    public ErrorResponse handleFriendNotFoundException(FriendNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return new ErrorResponse("Дружба не найдена", e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
