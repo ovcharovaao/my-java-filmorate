@@ -6,10 +6,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -65,6 +62,113 @@ public class InMemoryUserStorage implements UserStorage {
         }
 
         log.info("Пользователь с id {} удален", userId);
+    }
+
+    @Override
+    public void addFriend(long userId, long friendId) {
+        User user = users.get(userId);
+        User friend = users.get(friendId);
+
+        if (user == null || friend == null) {
+            log.warn("Один из пользователей не существует: userId={}, friendId={}", userId, friendId);
+            throw new NotFoundException("Один из пользователей не существует.");
+        }
+
+        if (user.getFriends().contains(friendId)) {
+            log.warn("Пользователь {} уже является другом пользователя {}", userId, friendId);
+            return;
+        }
+
+        user.getFriends().add(friendId);
+        friend.getFriends().add(userId);
+
+        log.info("Добавлена дружба между пользователем {} и {}", userId, friendId);
+    }
+
+    @Override
+    public void confirmFriendship(long userId, long friendId) {
+        User user = users.get(userId);
+        User friend = users.get(friendId);
+
+        if (user == null || friend == null) {
+            log.warn("Один из пользователей не существует: userId={}, friendId={}", userId, friendId);
+            throw new NotFoundException("Один из пользователей не существует.");
+        }
+
+        if (!user.getFriends().contains(friendId) || !friend.getFriends().contains(userId)) {
+            log.warn("Дружба между пользователями {} и {} еще не подтверждена", userId, friendId);
+            throw new ValidationException("Дружба еще не подтверждена.");
+        }
+
+        log.info("Дружба между пользователями {} и {} подтверждена", userId, friendId);
+    }
+
+    @Override
+    public void deleteFriend(long userId, long friendId) {
+        User user = users.get(userId);
+        User friend = users.get(friendId);
+
+        if (user == null || friend == null) {
+            log.warn("Один из пользователей не существует: userId={}, friendId={}", userId, friendId);
+            throw new NotFoundException("Один из пользователей не существует.");
+        }
+
+        if (!user.getFriends().remove(friendId)) {
+            log.warn("Дружба между пользователями {} и {} не найдена.", userId, friendId);
+            throw new ValidationException("Дружба не найдена.");
+        }
+
+        if (!friend.getFriends().remove(userId)) {
+            log.warn("Дружба между пользователями {} и {} не найдена.", userId, friendId);
+            throw new ValidationException("Дружба не найдена.");
+        }
+
+        log.info("Удалена дружба между пользователем {} и {}", userId, friendId);
+    }
+
+    @Override
+    public Set<User> getFriends(long userId) {
+        User user = users.get(userId);
+
+        if (user == null) {
+            log.warn("Пользователь с id {} не найден", userId);
+            throw new NotFoundException("Пользователь не найден.");
+        }
+
+        Set<User> friends = new HashSet<>();
+        for (Long friendId : user.getFriends()) {
+            User friend = users.get(friendId);
+            if (friend != null) {
+                friends.add(friend);
+            }
+        }
+
+        return friends;
+    }
+
+
+    @Override
+    public Set<User> getCommonFriends(long userId, long otherId) {
+        User user = users.get(userId);
+        User otherUser = users.get(otherId);
+
+        if (user == null || otherUser == null) {
+            log.warn("Один из пользователей не существует: userId={}, otherId={}", userId, otherId);
+            throw new NotFoundException("Один из пользователей не существует.");
+        }
+
+        Set<User> commonFriends = new HashSet<>();
+
+        for (Long friendId : user.getFriends()) {
+            if (otherUser.getFriends().contains(friendId)) {
+                User commonFriend = users.get(friendId);
+                if (commonFriend != null) {
+                    commonFriends.add(commonFriend);
+                }
+            }
+        }
+
+        return commonFriends;
     }
 
     private void userValidator(User user) {

@@ -7,10 +7,8 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -59,7 +57,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public void deleteFilmById(Long filmId) {
+    public void deleteFilmById(long filmId) {
 
         if (films.remove(filmId) == null) {
             log.warn("Фильм с id {} не найден", filmId);
@@ -68,6 +66,25 @@ public class InMemoryFilmStorage implements FilmStorage {
 
         log.info("Удален фильм с id {}", filmId);
     }
+
+    @Override
+    public List<Film> getPopularFilms(final int count) {
+        return films.values().stream()
+                .sorted(Comparator.comparing((Film film) -> film.getLikes().size()).reversed())
+                .limit(count)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addLike(long id, long userId) {
+        films.get(id).getLikes().add(userId);
+    }
+
+    @Override
+    public void deleteLike(long id, long userId) {
+        films.get(id).getLikes().remove(userId);
+    }
+
 
     private void filmValidator(Film film) {
         if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
